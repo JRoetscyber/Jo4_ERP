@@ -91,6 +91,7 @@ docker compose up -d --build
 ```
 
 On a 64-bit Raspberry Pi, set `CLOUDFLARED_IMAGE=cloudflare/cloudflared:latest-arm64` in `.env` before starting the stack.
+For a 2 GB Raspberry Pi, use `GUNICORN_WORKERS=1`, `GUNICORN_THREADS=2`, `PREDICTOR_ESTIMATORS=100`, and `KITCHEN_POLL_INTERVAL_MS=15000`.
 
 Deployment details are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 

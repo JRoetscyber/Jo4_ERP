@@ -24,6 +24,7 @@ Reference:
 1. Copy the project to the Linux server.
 2. Copy `.env.example` to `.env` and replace the placeholder values.
    On a 64-bit Raspberry Pi, set `CLOUDFLARED_IMAGE=cloudflare/cloudflared:latest-arm64`.
+   For a 2 GB Raspberry Pi, start with `GUNICORN_WORKERS=1`, `GUNICORN_THREADS=2`, `PREDICTOR_ESTIMATORS=100`, and `KITCHEN_POLL_INTERVAL_MS=15000`.
 3. Make sure Docker and Docker Compose are installed.
 4. Start the stack:
 
@@ -73,3 +74,4 @@ Reference:
 - Do not expose port `8000` publicly when you are using Cloudflare Tunnel.
 - Use a strong `SECRET_KEY`.
 - If you move to PostgreSQL later, set `DATABASE_URL` accordingly and mount persistent storage for the database separately.
+- The prediction endpoint now caches results for 5 minutes by default to reduce CPU load on small servers.

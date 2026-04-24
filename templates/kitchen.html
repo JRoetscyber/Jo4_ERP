@@ -64,6 +64,7 @@
 
 <script>
     const ticketContainer = document.getElementById('ticket-container');
+    const pollIntervalMs = {{ config['KITCHEN_POLL_INTERVAL_MS']|tojson }};
 
     // 1. The function that grabs the data and builds the HTML
     async function fetchOrders() {
@@ -138,8 +139,8 @@
     // Run it immediately when the page opens...
     fetchOrders();
 
-    // ...and then run it quietly in the background every 5000 milliseconds (5 seconds)!
-    setInterval(fetchOrders, 5000);
+    // ...and then run it quietly in the background on a configurable interval.
+    setInterval(fetchOrders, pollIntervalMs);
 
 </script>
 

@@ -5,6 +5,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from datetime import datetime, timedelta
 from models import SalesRecord, Product, RecipeItem, Ingredient
+import os
+import threading
 import warnings
 
 # Suppress sklearn warnings for a cleaner terminal
@@ -14,6 +16,37 @@ class StockPredictor:
     def __init__(self, db_uri):
         self.engine = create_engine(db_uri)
         self.Session = sessionmaker(bind=self.engine)
+        self.n_estimators = int(os.environ.get("PREDICTOR_ESTIMATORS", "100"))
+        self.cache_ttl_seconds = int(os.environ.get("PREDICTOR_CACHE_TTL", "300"))
+        self._cache = {}
+        self._cache_lock = threading.Lock()
+
+    def _get_cached_prediction(self, user_id):
+        if self.cache_ttl_seconds <= 0:
+            return None
+
+        with self._cache_lock:
+            cached = self._cache.get(user_id)
+
+        if not cached:
+            return None
+
+        if datetime.utcnow() >= cached["expires_at"]:
+            with self._cache_lock:
+                self._cache.pop(user_id, None)
+            return None
+
+        return cached["data"]
+
+    def _set_cached_prediction(self, user_id, data):
+        if self.cache_ttl_seconds <= 0:
+            return
+
+        with self._cache_lock:
+            self._cache[user_id] = {
+                "data": data,
+                "expires_at": datetime.utcnow() + timedelta(seconds=self.cache_ttl_seconds),
+            }
 
     def _get_sales_data(self, user_id):
         session = self.Session()
@@ -66,6 +99,10 @@ class StockPredictor:
         """
         Predicts sales for 7 days and 30 days simultaneously for a specific user.
         """
+        cached_result = self._get_cached_prediction(user_id)
+        if cached_result is not None:
+            return cached_result
+
         sales_df = self._get_sales_data(user_id)
         if sales_df is None:
             return {"error": "No sales data available. Start recording sales or upload historical data."}
@@ -113,7 +150,11 @@ class StockPredictor:
             X = daily_df[['day_of_year', 'weekday', 'is_weekend', 'month', 'rolling_7d']]
             y = daily_df['quantity_sold']
 
-            model = RandomForestRegressor(n_estimators=500, random_state=35)
+            model = RandomForestRegressor(
+                n_estimators=self.n_estimators,
+                random_state=35,
+                n_jobs=1,
+            )
             model.fit(X, y)
 
             # 3. Forecast the next 30 days
@@ -138,7 +179,7 @@ class StockPredictor:
             month_preds[product.name] = int(sum(daily_predictions))
 
         # Return both sets of data to the frontend
-        return {
+        result = {
             "week": {
                 "product_predictions": week_preds,
                 "ingredient_requirements": self._calculate_requirements(week_preds, recipes)
@@ -148,3 +189,5 @@ class StockPredictor:
                 "ingredient_requirements": self._calculate_requirements(month_preds, recipes)
             }
         }
+        self._set_cached_prediction(user_id, result)
+        return result
