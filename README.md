@@ -90,6 +90,8 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
+On a 64-bit Raspberry Pi, set `CLOUDFLARED_IMAGE=cloudflare/cloudflared:latest-arm64` in `.env` before starting the stack.
+
 Deployment details are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Security

@@ -18,7 +18,7 @@ services:
       - "8000"
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:latest}
     container_name: jo4_erp_tunnel
     restart: unless-stopped
     depends_on:

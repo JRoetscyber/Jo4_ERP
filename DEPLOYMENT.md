@@ -23,6 +23,7 @@ Reference:
 
 1. Copy the project to the Linux server.
 2. Copy `.env.example` to `.env` and replace the placeholder values.
+   On a 64-bit Raspberry Pi, set `CLOUDFLARED_IMAGE=cloudflare/cloudflared:latest-arm64`.
 3. Make sure Docker and Docker Compose are installed.
 4. Start the stack:
 
@@ -43,6 +44,7 @@ docker compose logs -f cloudflared
 
 1. In Cloudflare, create a tunnel.
 2. Copy the tunnel token and place it in `.env` as `CLOUDFLARED_TOKEN`.
+   If the server is `linux/arm64` or `linux/arm/v8`, also set `CLOUDFLARED_IMAGE=cloudflare/cloudflared:latest-arm64`.
 3. In the tunnel public hostname configuration, point your hostname to the local service.
 
 Service value to use:
