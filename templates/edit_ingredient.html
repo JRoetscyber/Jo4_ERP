@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="header">
+    <h1>Edit Master Ingredient</h1>
+</div>
+
+<div class="card" style="background: white; border: 2px solid #d5d5d8; border-radius: 8px; padding: 30px; max-width: 500px; margin: 0 auto;">
+    <h3 style="color: #0d134f; margin-top: 0; border-bottom: 2px solid #ff562a; padding-bottom: 10px;">Fixing: {{ ingredient.name }}</h3>
+    
+    <form method="POST" action="{{ url_for('ui.edit_ingredient', ingredient_id=ingredient.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: bold; color: #3a435b; display: block; margin-bottom: 8px;">Ingredient Name</label>
+            <input type="text" name="name" value="{{ ingredient.name }}" required style="width: 100%; padding: 12px; border: 1px solid #d5d5d8; border-radius: 4px; box-sizing: border-box; font-size: 1em;">
+        </div>
+        
+        <div style="margin-bottom: 25px;">
+            <label style="font-weight: bold; color: #3a435b; display: block; margin-bottom: 8px;">Correct Unit of Measure</label>
+            <select name="unit" required style="width: 100%; padding: 12px; border: 1px solid #d5d5d8; border-radius: 4px; box-sizing: border-box; font-size: 1em;">
+                <optgroup label="Liquids">
+                    <option value="ml" {% if ingredient.unit_of_measure == 'ml' %}selected{% endif %}>Milliliters (ml)</option>
+                    <option value="L" {% if ingredient.unit_of_measure == 'L' %}selected{% endif %}>Liters (L)</option>
+                </optgroup>
+                <optgroup label="Solids / Beans">
+                    <option value="g" {% if ingredient.unit_of_measure == 'g' %}selected{% endif %}>Grams (g)</option>
+                    <option value="kg" {% if ingredient.unit_of_measure == 'kg' %}selected{% endif %}>Kilograms (kg)</option>
+                </optgroup>
+                <optgroup label="Barista Specifics">
+                    <option value="shots" {% if ingredient.unit_of_measure == 'shots' %}selected{% endif %}>Espresso Shots (shots)</option>
+                    <option value="pumps" {% if ingredient.unit_of_measure == 'pumps' %}selected{% endif %}>Syrup Pumps (pumps)</option>
+                </optgroup>
+                <optgroup label="Packaging / Loose Items">
+                    <option value="units" {% if ingredient.unit_of_measure == 'units' %}selected{% endif %}>Individual Units (Cups, Lids)</option>
+                    <option value="bags" {% if ingredient.unit_of_measure == 'bags' %}selected{% endif %}>Bags</option>
+                </optgroup>
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: bold; color: #3a435b; display: block; margin-bottom: 8px;">Unit Cost ({{ curr.symbol }})</label>
+            <input type="number" name="unit_cost" value="{{ (ingredient.unit_cost * curr.rate) | round(2) }}" step="0.01" min="0" style="width: 100%; padding: 12px; border: 1px solid #d5d5d8; border-radius: 4px; box-sizing: border-box; font-size: 1em;">
+        </div>
+        
+        <div style="display: flex; gap: 15px;">
+            <a href="{{ url_for('ui.inventory') }}" style="flex: 1; text-align: center; background: #f8f9fa; color: #3a435b; border: 2px solid #d5d5d8; padding: 12px; font-weight: bold; border-radius: 4px; text-decoration: none;">Cancel</a>
+            <button type="submit" style="flex: 2; background: #0d134f; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 4px; cursor: pointer;">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

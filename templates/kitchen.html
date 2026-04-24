@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .kitchen-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px 0;
+    }
+
+    .ticket {
+        background: #ffffff;
+        border: 2px solid #0d134f;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: opacity 0.5s ease; /* Smooth fade out */
+    }
+
+    .ticket-header { background: #0d134f; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .ticket-header h3 { margin: 0; font-size: 1.4em; }
+    .ticket-time { font-size: 1.1em; font-weight: bold; color: #2dfa7e; }
+    .ticket-body { padding: 15px; flex-grow: 1; font-size: 1.2em; color: #3a435b; }
+    
+    .ticket-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #d5d5d8; }
+    .ticket-item:last-child { border-bottom: none; }
+    .qty { font-weight: bold; color: #ff562a; margin-right: 10px; }
+
+    .btn-complete { background: #2dfa7e; color: #0d134f; border: none; padding: 20px; font-size: 1.3em; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+    .btn-complete:hover { background: #25d96a; }
+    
+    .empty-state { text-align: center; padding: 50px; color: #3a435b; font-size: 1.5em; grid-column: 1 / -1; }
+    
+    /* A little pulsing dot to prove it's live */
+    .live-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background-color: #ff562a;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 86, 42, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 86, 42, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 86, 42, 0); }
+    }
+</style>
+
+<div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>Kitchen Display System (KDS)</h1>
+    <span style="font-weight: bold; color: #0d134f; font-size: 1.2em; display: flex; align-items: center;">
+        <span class="live-indicator"></span> Auto-Syncing
+    </span>
+</div>
+
+<div class="kitchen-grid" id="ticket-container">
+    <div class="empty-state">📡 Connecting to JO4 BREW POS...</div>
+</div>
+
+<script>
+    const ticketContainer = document.getElementById('ticket-container');
+
+    // 1. The function that grabs the data and builds the HTML
+    async function fetchOrders() {
+        try {
+            const response = await fetch('/api/kitchen/orders');
+            const orders = await response.json();
+
+            if (orders.length === 0) {
+                ticketContainer.innerHTML = '<div class="empty-state">🍳 Kitchen is clear! Waiting for orders...</div>';
+                return;
+            }
+
+            // Build the new HTML based on the live data
+            let newHTML = '';
+            orders.forEach(order => {
+                let itemsHTML = '';
+                order.items.forEach(item => {
+                    itemsHTML += `
+                        <div class="ticket-item">
+                            <span><span class="qty">${item.quantity}x</span> ${item.product_name}</span>
+                        </div>`;
+                });
+
+                newHTML += `
+                    <div class="ticket" id="ticket-${order.id}">
+                        <div class="ticket-header">
+                            <h3>Order #${order.id}</h3>
+                            <span class="ticket-time">${order.timestamp}</span>
+                        </div>
+                        <div class="ticket-body">
+                            ${itemsHTML}
+                        </div>
+                        <button class="btn-complete" onclick="markComplete(${order.id})">
+                            ✔️ Mark Ready
+                        </button>
+                    </div>`;
+            });
+
+            // Update the screen instantly
+            ticketContainer.innerHTML = newHTML;
+
+        } catch (error) {
+            console.error("Error fetching live orders:", error);
+        }
+    }
+
+    // 2. The function that tells the server an order is done
+    async function markComplete(orderId) {
+        // Find the ticket and fade it out so the barista knows they clicked it
+        const ticketElement = document.getElementById(`ticket-${orderId}`);
+        if (ticketElement) {
+            ticketElement.style.opacity = '0.3';
+            ticketElement.style.pointerEvents = 'none';
+        }
+
+        try {
+            await fetch(`/api/kitchen/orders/${orderId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
+            // Immediately fetch the updated list to remove it from the screen
+            fetchOrders(); 
+        } catch (error) {
+            console.error("Error completing order:", error);
+            if (ticketElement) ticketElement.style.opacity = '1'; // Revert if failed
+        }
+    }
+
+    // Run it immediately when the page opens...
+    fetchOrders();
+
+    // ...and then run it quietly in the background every 5000 milliseconds (5 seconds)!
+    setInterval(fetchOrders, 5000);
+
+</script>
+
+{% endblock %}

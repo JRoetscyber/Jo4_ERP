@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="header">
+    <h1>Transaction History</h1>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Items</th>
+                    <th>Total ({{ curr.symbol }})</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td data-label="Date & Time">{{ order.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td data-label="Items">
+                        {% for item in order.items %}
+                        <div>{{ item.quantity }}x {{ item.product_name }}</div>
+                        {% endfor %}
+                    </td>
+                    <td data-label="Total">
+                        <span class="metric-value">{{ curr.symbol }} {{ (order.total_in_zar * curr.rate) | round(2) }}</span>
+                    </td>
+                    <td data-label="Method" style="text-transform: capitalize;">
+                        <i class="fas fa-{% if order.payment_method == 'card' %}credit-card{% else %}money-bill-wave{% endif %}"></i>
+                        {{ order.payment_method }}
+                    </td>
+                    <td data-label="Status">
+                        <span class="status-badge {% if order.status == 'Refunded' %}status-badge--danger{% else %}status-badge--success{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td data-label="Action">
+                        {% if order.status != 'Refunded' %}
+                        <button onclick="refundOrder({{ order.id }})" class="btn btn-secondary">Refund</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not orders %}
+                <tr><td colspan="6">No transactions found.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function refundOrder(orderId) {
+    if (!confirm("Are you sure you want to refund this order? This will add ingredients back to inventory and remove the sale from analytics.")) return;
+
+    fetch(`/api/refund/${orderId}`, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

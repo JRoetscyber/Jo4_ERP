@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #3a435b; }
+    .styled-input { width: 100%; padding: 12px; border: 1px solid #d5d5d8; border-radius: 4px; box-sizing: border-box; font-size: 1rem; color: #0d134f; }
+    
+    .ingredient-row {
+        display: grid;
+        grid-template-columns: 3fr 1fr auto;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 15px;
+        background: #f8f9fa;
+        padding: 15px;
+        border: 1px solid #d5d5d8;
+        border-radius: 4px;
+    }
+    
+    .qty-wrapper { position: relative; width: 100%; }
+    .unit-display {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #ff562a;
+        font-weight: bold;
+        pointer-events: none;
+    }
+
+    .btn-remove { background: white; color: #ff562a; border: 2px solid #ff562a; padding: 12px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-remove:hover { background: #ff562a; color: white; }
+    .btn-add { background: white; color: #0d134f; border: 2px dashed #0d134f; padding: 12px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+    .btn-add:hover { background: #0d134f; color: white; }
+    .btn-submit { background: #2dfa7e; color: #0d134f; border: none; padding: 15px; font-size: 1.2em; font-weight: bold; border-radius: 4px; width: 100%; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 20px;}
+    .btn-submit:hover { background: #25d96a; transform: translateY(-2px); }
+</style>
+
+<div class="header">
+    <h1>{{ 'Edit' if product else 'Create' }} Recipe</h1>
+</div>
+
+<div class="card" style="background: white; border: 2px solid #d5d5d8; border-radius: 8px; padding: 30px; max-width: 800px; margin: 0 auto;">
+    <form method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <h3 style="color: #0d134f; border-bottom: 2px solid #2dfa7e; padding-bottom: 10px; margin-top: 0;">Product Details</h3>
+        
+        <div class="form-group">
+            <label>Product Name (e.g., Caramel Latte L)</label>
+            <input type="text" name="name" class="styled-input" value="{{ product.name if product else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Selling Price ({{ curr.symbol }})</label>
+            <input type="number" name="selling_price" class="styled-input" step="0.01" value="{{ (product.selling_price * curr.rate) | round(2) if product else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Cost Price (Manual Override - {{ curr.symbol }})</label>
+            <p class="subtitle" style="font-size: 0.85em; margin-bottom: 5px;">Leave empty to auto-calculate from ingredients.</p>
+            <input type="number" name="cost_price" class="styled-input" step="0.01" value="{{ (product.cost_price * curr.rate) | round(2) if (product and product.cost_price) else '' }}" placeholder="Optional">
+        </div>
+
+        <div style="background: #f8f9fa; border-left: 4px solid #ff562a; padding: 15px; margin: 30px 0; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #ff562a; margin-bottom: 10px;">⚖️ Quick ML Conversion Guide</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 40px; font-size: 0.95em; color: #3a435b;">
+                <div>
+                    <strong style="color: #0d134f; border-bottom: 1px solid #d5d5d8; display: inline-block; padding-bottom: 3px;">Syrup Pumps</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                        <li><strong>Starbucks / Generic:</strong> 15 ml</li>
+                        <li><strong>Monin:</strong> 10 ml</li>
+                        <li><strong>Torani:</strong> 7.5 ml</li>
+                        <li><strong>Thick Sauces:</strong> 30 ml</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong style="color: #0d134f; border-bottom: 1px solid #d5d5d8; display: inline-block; padding-bottom: 3px;">Baking / Food</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                        <li><strong>1 Teaspoon (tsp):</strong> 5 ml / 5 g</li>
+                        <li><strong>1 Tablespoon (tbsp):</strong> 15 ml / 15 g</li>
+                        <li><strong>1 Metric Cup:</strong> 250 ml / 250 g</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="margin: 15px 0 0 0; font-style: italic; font-size: 0.9em; color: #0d134f;">* Always enter recipe quantities in <strong>ml</strong> or <strong>g</strong> based on the conversions above!</p>
+        </div>
+
+        <h3 style="color: #0d134f; margin-bottom: 20px;">Bill of Materials</h3>
+        
+        <div id="ingredients-container">
+            {% if product and product.recipe_items %}
+                {% for item in product.recipe_items %}
+                <div class="ingredient-row">
+                    <select name="ingredient_id" class="styled-input ingredient-select" onchange="updateUnitLabel(this)">
+                        <option value="" disabled>Select...</option>
+                        {% for ingredient in all_ingredients %}
+                        <option value="{{ ingredient.id }}" data-unit="{{ ingredient.unit_of_measure }}" {% if item.ingredient_id == ingredient.id %}selected{% endif %}>
+                            {{ ingredient.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="qty-wrapper">
+                        <input type="number" name="quantity_needed" class="styled-input" step="any" placeholder="Qty" value="{{ item.quantity_needed }}" required>
+                        <span class="unit-display">{{ item.ingredient.unit_of_measure }}</span>
+                    </div>
+                    <button type="button" class="btn-remove remove-ingredient">Remove</button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <button type="button" id="add-ingredient" class="btn-add">+ Add Another Ingredient</button>
+        <button type="submit" class="btn-submit">{{ 'Update Product &' if product else 'Save New' }} Recipe</button>
+    </form>
+</div>
+
+<template id="ingredient-template">
+    <div class="ingredient-row">
+        <select name="ingredient_id" class="styled-input ingredient-select" onchange="updateUnitLabel(this)" required>
+            <option value="" disabled selected>Select an ingredient...</option>
+            {% for ingredient in all_ingredients %}
+            <option value="{{ ingredient.id }}" data-unit="{{ ingredient.unit_of_measure }}">{{ ingredient.name }}</option>
+            {% endfor %}
+        </select>
+        <div class="qty-wrapper">
+            <input type="number" name="quantity_needed" class="styled-input" step="any" placeholder="Qty" required>
+            <span class="unit-display"></span> 
+        </div>
+        <button type="button" class="btn-remove remove-ingredient">Remove</button>
+    </div>
+</template>
+
+<script>
+function updateUnitLabel(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const unitText = selectedOption.getAttribute('data-unit') || '';
+    const displaySpan = selectElement.closest('.ingredient-row').querySelector('.unit-display');
+    if (displaySpan) {
+        displaySpan.textContent = unitText;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('ingredients-container');
+    const template = document.getElementById('ingredient-template');
+
+    if (container.children.length === 0) {
+        container.appendChild(template.content.cloneNode(true));
+    }
+
+    document.getElementById('add-ingredient').addEventListener('click', () => {
+        container.appendChild(template.content.cloneNode(true));
+    });
+
+    container.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-ingredient')) {
+            e.target.closest('.ingredient-row').remove();
+        }
+    });
+});
+</script>
+{% endblock %}

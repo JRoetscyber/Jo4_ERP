@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    container_name: jo4_erp_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/instance/erp.sqlite}
+      SECRET_KEY: ${SECRET_KEY}
+      TRUST_PROXY: "true"
+      SESSION_COOKIE_SECURE: "true"
+      REMEMBER_COOKIE_SECURE: "true"
+      PREFERRED_URL_SCHEME: https
+    volumes:
+      - ./instance:/app/instance
+    expose:
+      - "8000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: jo4_erp_tunnel
+    restart: unless-stopped
+    depends_on:
+      - app
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN}

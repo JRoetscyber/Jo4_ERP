@@ -1,0 +1,72 @@
+<!-- templates/index.html -->
+{% extends "layout.html" %}
+{% block content %}
+{% if current_user.is_authenticated %}
+<div class="header">
+    <h1>Dashboard</h1>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-coins"></i></div>
+        <h4>Total Revenue</h4>
+        <p id="kpi-total-revenue">R 0.00</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-shopping-cart"></i></div>
+        <h4>Total Items Sold</h4>
+        <p id="kpi-total-items-sold">0</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-star"></i></div>
+        <h4>Best-Seller</h4>
+        <p id="kpi-best-seller">N/A</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h4>Low Stock</h4>
+        <div id="kpi-low-stock">
+            <p>Loading...</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card full-width welcome-card">
+        <h2>Welcome back, {{ current_user.username }}!</h2>
+        <p>Use the sidebar to manage your inventory, view AI analytics, or check stock predictions.</p>
+        <div class="welcome-actions">
+            <a href="{{ url_for('ui.pos') }}" class="btn btn-primary"><i class="fas fa-cash-register"></i> Open POS</a>
+            <a href="{{ url_for('ui.inventory') }}" class="btn btn-secondary"><i class="fas fa-boxes-stacked"></i> View Inventory</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="landing-hero">
+    <h1>Welcome to Jo4 ERP</h1>
+    <p>The smartest way to manage your coffee shop or restaurant.</p>
+    <div class="hero-features">
+        <div class="feature">
+            <i class="fas fa-brain"></i>
+            <h3>AI Predictions</h3>
+            <p>Know what to order before you run out.</p>
+        </div>
+        <div class="feature">
+            <i class="fas fa-chart-pie"></i>
+            <h3>Real-time Analytics</h3>
+            <p>Track your revenue and best-sellers live.</p>
+        </div>
+        <div class="feature">
+            <i class="fas fa-mobile-alt"></i>
+            <h3>Simple POS</h3>
+            <p>Clean, efficient interface for your staff.</p>
+        </div>
+    </div>
+    <div class="hero-actions">
+        <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-large">Get Started Now</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-secondary btn-large">Login</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

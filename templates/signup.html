@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Create Account</h2>
+        <p style="text-align: center; color: #666; margin-top: -20px; margin-bottom: 30px;">Join 500+ businesses using Jo4 ERP</p>
+        <form method="POST">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username" class="form-control" required placeholder="Pick a username">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" name="email" id="email" class="form-control" required placeholder="name@company.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" class="form-control" required placeholder="Create a strong password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="padding: 15px;">Sign Up</button>
+        </form>
+        <p class="auth-footer">Already have an account? <a href="{{ url_for('auth.login') }}" style="color: var(--accent-color); font-weight: bold; text-decoration: none;">Login</a></p>
+    </div>
+</div>
+{% endblock %}

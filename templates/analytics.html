@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="header">
+    <h1>AI Analytics</h1>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> <strong>Note:</strong> AI Analytics and Profit reports become significantly more accurate after at least one month of consistent data entry and ingredient cost tracking.
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-receipt"></i></div>
+        <h4>Avg. Order Value</h4>
+        <p id="kpi-avg-ticket">R 0.00</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+        <h4>Profit Margin</h4>
+        <p id="kpi-margin">0%</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-hand-holding-usd"></i></div>
+        <h4>Total Profit</h4>
+        <p id="kpi-profit">R 0.00</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <h3>Peak Sales Hours</h3>
+        <p class="subtitle">Busiest times of the day.</p>
+        <div class="chart-container">
+            <canvas id="peakHoursChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h3>Day of Week Performance</h3>
+        <p class="subtitle">Busiest days of the week.</p>
+        <div class="chart-container">
+            <canvas id="weekdayChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h3>Revenue vs Cost Trend</h3>
+        <p class="subtitle">Comparison of monthly income and expenses.</p>
+        <div class="chart-container">
+            <canvas id="salesTrendChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h3>Product Profitability</h3>
+        <p class="subtitle">Net profit generated per product based on snapshots.</p>
+        <div class="chart-container">
+            <canvas id="productProfitChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h3>Production Capacity</h3>
+        <p class="subtitle">Max items you can make with current inventory levels.</p>
+        <div class="chart-container">
+            <canvas id="productionCapacityChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+<!-- templates/layout.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Coffee ERP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="{% if current_user.is_authenticated %}authenticated{% endif %}">
+    <button class="mobile-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="container">
+        {% if current_user.is_authenticated %}
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-coffee"></i> Jo4 ERP</h2>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('ui.index') }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li><a href="{{ url_for('ui.analytics') }}"><i class="fas fa-microchip"></i> AI Analytics</a></li>
+                    <li><a href="{{ url_for('ui.predictions') }}"><i class="fas fa-brain"></i> AI Predictions</a></li>
+                    <li><a href="{{ url_for('ui.inventory') }}"><i class="fas fa-boxes-stacked"></i> Inventory</a></li>
+                    <li><a href="{{ url_for('ui.pos') }}"><i class="fas fa-cash-register"></i> Point of Sale</a></li>
+                    <li><a href="{{ url_for('ui.recipes') }}"><i class="fas fa-book-open"></i> Recipes</a></li>
+                    <li><a href="{{ url_for('ui.kitchen') }}"><i class="fas fa-utensils"></i> Kitchen Display</a></li>
+                    <li><a href="{{ url_for('ui.transactions') }}"><i class="fas fa-history"></i> Transactions</a></li>
+                    <li><a href="{{ url_for('ui.upload_form') }}"><i class="fas fa-upload"></i> Upload Data</a></li>
+                    <li class="nav-divider"></li>
+                    <li class="nav-header">Preferences</li>
+                    <li>
+                        <form action="{{ url_for('auth.update_currency') }}" method="POST" id="currency-form" class="currency-form">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                            <select name="currency" onchange="document.getElementById('currency-form').submit()" class="currency-select">
+                                <option value="ZAR" {% if current_user.currency == 'ZAR' %}selected{% endif %}>🇿🇦 ZAR (Rand)</option>
+                                <option value="USD" {% if current_user.currency == 'USD' %}selected{% endif %}>🇺🇸 USD (Dollar)</option>
+                                <option value="EUR" {% if current_user.currency == 'EUR' %}selected{% endif %}>🇪🇺 EUR (Euro)</option>
+                                <option value="GBP" {% if current_user.currency == 'GBP' %}selected{% endif %}>🇬🇧 GBP (Pound)</option>
+                                <option value="JPY" {% if current_user.currency == 'JPY' %}selected{% endif %}>🇯🇵 JPY (Yen)</option>
+                                <option value="AUD" {% if current_user.currency == 'AUD' %}selected{% endif %}>🇦🇺 AUD (Australian $)</option>
+                            </select>
+                        </form>
+                    </li>
+                    <li class="nav-divider"></li>
+                    <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout ({{ current_user.username }})</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <div class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+        {% endif %}
+        <main class="main-content {% if not current_user.is_authenticated %}guest-main{% endif %}">
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+            </div>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="header">
+    <h1>AI Stock Predictions</h1>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> <strong>Note:</strong> Predictive models require historical patterns. Forecasts reach peak accuracy after 30 days of sales data have been recorded.
+</div>
+
+<div class="card full-width">
+    <div class="prediction-header">
+        <h3>Forecast Explorer</h3>
+        <div class="prediction-toggle">
+            <button id="btn-week" class="btn btn-active" onclick="renderPredictions('week')" style="background: #ff562a; color: white;">Next 7 Days</button>
+            <button id="btn-month" class="btn" onclick="renderPredictions('month')" style="background: #d5d5d8; color: #3a435b;">Next 30 Days</button>
+        </div>
+    </div>
+    <div id="predictions" style="min-height: 200px; margin-top: 20px;">
+        <p>Analyzing sales patterns and calculating requirements...</p>
+    </div>
+</div>
+{% endblock %}

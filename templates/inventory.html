@@ -1,0 +1,148 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="header">
+    <h1>Inventory</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="page-notice {% if category == 'error' %}page-notice--error{% else %}page-notice--success{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="split-layout">
+    <div class="card">
+        <h3 class="section-title section-title--success">Add Master Ingredient</h3>
+        <form method="POST" action="{{ url_for('ui.inventory') }}" class="inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label>Ingredient Name</label>
+                <input type="text" name="name" required placeholder="e.g., Macadamia Milk" class="form-control">
+            </div>
+
+            <div>
+                <label>Unit of Measure</label>
+                <select name="unit" required class="form-control">
+                    <optgroup label="Liquids">
+                        <option value="ml">Milliliters (ml) - Best for precise recipes</option>
+                        <option value="L">Liters (L)</option>
+                    </optgroup>
+                    <optgroup label="Solids / Beans">
+                        <option value="g">Grams (g) - Best for coffee grounds</option>
+                        <option value="kg">Kilograms (kg)</option>
+                    </optgroup>
+                    <optgroup label="Barista Specifics">
+                        <option value="pumps">Pumps (For Syrups & Sauces)</option>
+                        <option value="shots">Espresso Shots (shots)</option>
+                    </optgroup>
+                    <optgroup label="Packaging / Loose Items">
+                        <option value="units">Individual Units (Cups, Lids, Straws)</option>
+                        <option value="bags">Bags</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div>
+                <label>Unit Cost ({{ curr.symbol }})</label>
+                <input type="number" name="unit_cost" step="0.01" min="0" placeholder="Cost per base unit (e.g., per ml or g)" class="form-control">
+            </div>
+
+            <button type="submit" class="btn btn-secondary btn-block">Add to Database</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3 class="section-title">Stock Levels & Adjustments</h3>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th>Total in Stock</th>
+                        <th>Unit Cost</th>
+                        <th>Update Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in ingredients %}
+                    <tr>
+                        <td data-label="Ingredient">
+                            <div class="item-name">{{ item.name }}</div>
+                            <div class="meta-actions">
+                                <a href="{{ url_for('ui.edit_ingredient', ingredient_id=item.id) }}" class="meta-link">Edit</a>
+                                <form method="POST" action="{{ url_for('ui.delete_ingredient', ingredient_id=item.id) }}" onsubmit="return confirm('Are you sure you want to completely delete {{ item.name }}?');">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="meta-button meta-button-danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+
+                        <td data-label="Total in Stock">
+                            <span class="metric-value {% if item.current_stock <= 0 %}metric-value--bad{% else %}metric-value--good{% endif %}">
+                                {{ "%.2f"|format(item.current_stock) }}
+                            </span>
+                            <span class="metric-unit">{{ item.unit_of_measure }}</span>
+                        </td>
+
+                        <td data-label="Unit Cost">
+                            <span class="metric-value">{{ curr.symbol }} {{ "%.2f"|format(item.unit_cost * curr.rate) }}</span>
+                        </td>
+
+                        <td data-label="Update Stock">
+                            <form method="POST" action="{{ url_for('ui.update_stock') }}" class="stock-form">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="ingredient_id" value="{{ item.id }}">
+
+                                <input type="number" name="amount" step="any" min="0.01" placeholder="Qty" required class="form-control qty-input">
+
+                                <select name="input_unit" class="form-control unit-select">
+                                    {% if item.unit_of_measure in ['g', 'kg'] %}
+                                        <option value="g" {% if item.unit_of_measure == 'g' %}selected{% endif %}>g</option>
+                                        <option value="kg" {% if item.unit_of_measure == 'kg' %}selected{% endif %}>kg</option>
+                                    {% elif item.unit_of_measure in ['ml', 'L'] %}
+                                        <option value="ml" {% if item.unit_of_measure == 'ml' %}selected{% endif %}>ml</option>
+                                        <option value="L" {% if item.unit_of_measure == 'L' %}selected{% endif %}>Liters (L)</option>
+                                    {% elif item.unit_of_measure == 'pumps' %}
+                                        <optgroup label="Direct Pumps">
+                                            <option value="pumps" selected>Pumps (Exact)</option>
+                                        </optgroup>
+                                        <optgroup label="Convert from ML">
+                                            <option value="ml_to_pump_15">ml (using 15ml Starbucks Pump)</option>
+                                            <option value="ml_to_pump_10">ml (using 10ml Monin Pump)</option>
+                                            <option value="ml_to_pump_7_5">ml (using 7.5ml Torani Pump)</option>
+                                            <option value="ml_to_pump_30">ml (using 30ml Sauce Pump)</option>
+                                            <option value="ml_to_pump_5">ml (using 5ml Mini Pump)</option>
+                                        </optgroup>
+                                        <optgroup label="Convert from Liters">
+                                            <option value="L_to_pump_15">Liters (using 15ml Starbucks Pump)</option>
+                                            <option value="L_to_pump_10">Liters (using 10ml Monin Pump)</option>
+                                            <option value="L_to_pump_7_5">Liters (using 7.5ml Torani Pump)</option>
+                                            <option value="L_to_pump_30">Liters (using 30ml Sauce Pump)</option>
+                                            <option value="L_to_pump_5">Liters (using 5ml Mini Pump)</option>
+                                        </optgroup>
+                                    {% else %}
+                                        <option value="{{ item.unit_of_measure }}" selected>{{ item.unit_of_measure }}</option>
+                                    {% endif %}
+                                </select>
+
+                                <button type="submit" name="action" value="add" class="btn btn-primary">+ Add</button>
+                                <button type="submit" name="action" value="remove" formnovalidate class="btn btn-danger">- Fix</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">No ingredients found. Add one above to get started.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

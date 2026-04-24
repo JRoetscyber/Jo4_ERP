@@ -1,0 +1,73 @@
+<!-- templates/upload.html -->
+{% extends "layout.html" %}
+{% block content %}
+<div class="header">
+    <h1>Upload Historical Sales Data</h1>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card" style="grid-column: span 2;">
+        <h3>Instructions</h3>
+        <p>To ensure your analytics and profit reports are accurate, please upload your sales data in the following CSV format. The system will automatically create any new products found in the file.</p>
+        
+        <div style="background: #f0f7f8; padding: 20px; border-radius: 8px; border-left: 5px solid var(--accent-color); margin: 20px 0;">
+            <h5 style="margin-top: 0;">Required CSV Columns:</h5>
+            <code style="display: block; background: white; padding: 10px; border-radius: 4px; border: 1px solid #d5d5d8;">
+                timestamps, product name, quantity sold, price
+            </code>
+            <p style="font-size: 0.9em; margin-top: 10px;"><em>* Headers are case-insensitive. "timestamps" or "timestamp" are both accepted.</em></p>
+        </div>
+
+        <h4>Example Format:</h4>
+        <table class="sample-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+            <thead style="background: #eee;">
+                <tr>
+                    <th style="padding: 10px; border: 1px solid #ddd;">timestamps</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">product name</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">quantity sold</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">2026/02/03</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Cappuccino L</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">5</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">35</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">2026/02/03</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Caramel iced Coffee L</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">4</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">40</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h3>File Upload</h3>
+        <p>Select your <code>.csv</code> file to begin processing.</p>
+        <form action="{{ url_for('ui.upload_form') }}" method="post" enctype="multipart/form-data" style="margin-top: 30px;">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <input type="file" name="csv_file" accept=".csv" required class="form-control" style="padding: 10px;">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="padding: 15px;">
+                <i class="fas fa-cloud-upload-alt"></i> Upload and Process
+            </button>
+        </form>
+
+        <div style="margin-top: 50px; padding-top: 20px; border-top: 2px solid #f8d7da;">
+            <h4 style="color: #721c24;"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h4>
+            <p style="font-size: 0.85em; color: #721c24;">Made a mistake with your upload? You can wipe your account data to start fresh. <strong>This will permanently delete all your sales, products, and ingredients.</strong></p>
+            <form action="{{ url_for('ui.wipe_data') }}" method="post" onsubmit="return confirm('CRITICAL WARNING: This will permanently delete EVERYTHING in your account (Sales, Products, Inventory). This cannot be undone. Are you absolutely sure?');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-secondary btn-block" style="background: #dc3545; border: none; font-size: 0.9em; padding: 10px;">
+                    Delete All My Data
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

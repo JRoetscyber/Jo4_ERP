@@ -1,0 +1,281 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .pos-item:hover {
+        border-color: #ff562a !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(58, 67, 91, 0.1);
+    }
+
+    .pos-item:active {
+        transform: translateY(0);
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+<div class="header">
+    <h1>Point of Sale</h1>
+</div>
+
+<div class="pos-shell">
+    <div class="pos-products-panel no-scrollbar">
+        <div class="pos-products-grid">
+            {% for product in products %}
+            <div class="pos-item"
+                 onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.selling_price * curr.rate }})">
+                <h4 class="pos-item-name">{{ product.name }}</h4>
+                <p class="pos-item-price">{{ curr.symbol }} {{ "%.2f"|format(product.selling_price * curr.rate) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card pos-cart">
+        <h3 class="section-title section-title--success">Current Order</h3>
+
+        <div id="cart-items" class="cart-items">
+            <p style="color: #3a435b; font-style: italic;">Cart is empty</p>
+        </div>
+
+        <div style="border-top: 2px solid #d5d5d8; padding-top: 15px; margin-top: 15px;">
+            <div class="cart-total-row" style="font-size: 1.4em; font-weight: bold; color: #0d134f; margin-bottom: 15px;">
+                <span>Total:</span>
+                <span id="cart-total">{{ curr.symbol }} 0.00</span>
+            </div>
+
+            <div class="payment-grid" style="margin-bottom: 15px;">
+                <button onclick="setPaymentMethod('card')" id="btn-card" class="btn" style="background: #eee; border: 1px solid #ddd; color: #3a435b;">
+                    <i class="fas fa-credit-card"></i> Card
+                </button>
+                <button onclick="setPaymentMethod('cash')" id="btn-cash" class="btn" style="background: #eee; border: 1px solid #ddd; color: #3a435b;">
+                    <i class="fas fa-money-bill-wave"></i> Cash
+                </button>
+            </div>
+
+            <div id="cash-calculator" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #d5d5d8;">
+                <label style="font-size: 0.8em; font-weight: bold; color: #3a435b; display: block; margin-bottom: 5px;">Cash Tendered</label>
+                <input type="number" id="cash-tendered" oninput="calculateChange()" placeholder="0.00" class="form-control" style="margin-bottom: 10px;">
+
+                <div class="cash-grid" style="margin-bottom: 10px;">
+                    {% if current_user.currency == 'JPY' %}
+                        {% set values = [500, 1000, 2000, 5000, 10000] %}
+                    {% else %}
+                        {% set values = [10, 20, 50, 100, 200] %}
+                    {% endif %}
+
+                    {% for val in values %}
+                    <button onclick="quickCash({{ val }})" class="btn" style="padding: 10px; font-size: 0.85em; border: 1px solid #ddd; background: white; color: #3a435b;">{{ curr.symbol }}{{ val }}</button>
+                    {% endfor %}
+                    <button onclick="exactAmount()" class="btn" style="padding: 10px; font-size: 0.85em; border: 1px solid #ddd; background: #2dfa7e; color: #0d134f;">Exact</button>
+                </div>
+
+                <div class="cash-change-row" style="font-weight: bold; color: #ff562a; font-size: 1.1em;">
+                    <span>Change:</span>
+                    <span id="change-due">{{ curr.symbol }} 0.00</span>
+                </div>
+            </div>
+
+            <button onclick="checkout()" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.2em;">
+                Complete Sale
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let cart = {};
+let paymentMethod = 'card';
+let currentTotal = 0;
+
+function addToCart(id, name, price) {
+    if (cart[id]) {
+        cart[id].quantity += 1;
+    } else {
+        cart[id] = { name: name, price: price, quantity: 1 };
+    }
+    renderCart();
+}
+
+function renderCart() {
+    const cartDiv = document.getElementById('cart-items');
+    const totalSpan = document.getElementById('cart-total');
+
+    if (Object.keys(cart).length === 0) {
+        cartDiv.innerHTML = '<p style="color: #3a435b; font-style: italic;">Cart is empty</p>';
+        totalSpan.innerText = '{{ curr.symbol }} 0.00';
+        currentTotal = 0;
+        return;
+    }
+
+    let html = '';
+    let total = 0;
+
+    for (const [id, item] of Object.entries(cart)) {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+
+        html += `
+            <div class="cart-row">
+                <div class="cart-row-main">
+                    <span style="font-weight: bold; color: #0d134f;">${item.name}</span>
+                    <span style="color: #3a435b;">{{ curr.symbol }} ${itemTotal.toFixed(2)}</span>
+                </div>
+                <div class="cart-row-actions">
+                    <button onclick="updateQuantity(${id}, -1)" class="btn btn-secondary">-</button>
+                    <span>${item.quantity}</span>
+                    <button onclick="updateQuantity(${id}, 1)" class="btn btn-secondary">+</button>
+                    <button onclick="removeFromCart(${id})" class="btn btn-danger cart-row-remove">Remove</button>
+                </div>
+            </div>
+        `;
+    }
+
+    currentTotal = Math.round(total * 100) / 100;
+
+    cartDiv.innerHTML = html;
+    totalSpan.innerText = '{{ curr.symbol }} ' + currentTotal.toFixed(2);
+
+    calculateChange();
+}
+
+function updateQuantity(id, delta) {
+    if (!cart[id]) return;
+    cart[id].quantity += delta;
+    if (cart[id].quantity <= 0) delete cart[id];
+    renderCart();
+}
+
+function removeFromCart(id) {
+    delete cart[id];
+    renderCart();
+}
+
+function setPaymentMethod(method) {
+    paymentMethod = method;
+
+    const btnCard = document.getElementById('btn-card');
+    const btnCash = document.getElementById('btn-cash');
+    const cashCalc = document.getElementById('cash-calculator');
+
+    if (method === 'cash') {
+        btnCash.style.background = '#0d134f';
+        btnCash.style.color = 'white';
+        btnCard.style.background = '#eee';
+        btnCard.style.color = '#3a435b';
+        cashCalc.style.display = 'block';
+    } else {
+        btnCard.style.background = '#0d134f';
+        btnCard.style.color = 'white';
+        btnCash.style.background = '#eee';
+        btnCash.style.color = '#3a435b';
+        cashCalc.style.display = 'none';
+    }
+}
+
+function quickCash(amount) {
+    document.getElementById('cash-tendered').value = amount.toFixed(2);
+    calculateChange();
+}
+
+function exactAmount() {
+    document.getElementById('cash-tendered').value = currentTotal.toFixed(2);
+    calculateChange();
+}
+
+function calculateChange() {
+    const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
+    const changeDue = Math.max(0, tendered - currentTotal);
+
+    document.getElementById('change-due').innerText =
+        '{{ curr.symbol }} ' + changeDue.toFixed(2);
+}
+
+function checkout() {
+    const btn = document.querySelector('button[onclick="checkout()"]');
+
+    if (Object.keys(cart).length === 0) {
+        alert("Cart is empty!");
+        return;
+    }
+
+    if (!paymentMethod) {
+        alert("Please select a payment method.");
+        return;
+    }
+
+    btn.disabled = true;
+    const originalText = btn.innerText;
+    btn.innerText = "Processing...";
+
+    const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
+
+    if (paymentMethod === 'cash' && tendered < currentTotal - 0.01) {
+        alert("Insufficient cash tendered!");
+        document.getElementById('cash-tendered').focus();
+
+        btn.disabled = false;
+        btn.innerText = originalText;
+        return;
+    }
+
+    const orderItems = Object.keys(cart).map(id => ({
+        product_id: parseInt(id),
+        quantity: cart[id].quantity
+    }));
+
+    const payload = {
+        cart: orderItems,
+        payment_method: paymentMethod,
+        tendered: paymentMethod === 'cash' ? tendered : currentTotal
+    };
+
+    fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+        }
+
+        btn.innerText = "Success!";
+
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerText = "Complete Sale";
+
+            cart = {};
+            document.getElementById('cash-tendered').value = '';
+            renderCart();
+        }, 1200);
+    })
+    .catch(() => {
+        alert("Checkout failed!");
+
+        btn.disabled = false;
+        btn.innerText = originalText;
+    });
+}
+
+window.onload = () => {
+    setPaymentMethod('card');
+};
+</script>
+{% endblock %}
